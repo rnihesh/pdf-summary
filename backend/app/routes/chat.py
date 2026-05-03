@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
@@ -9,6 +10,25 @@ from ..auth import get_current_user
 from ..llm import embed_texts, chat_with_context
 
 router = APIRouter()
+
+
+_GREETING_PATTERNS = {
+    "hi", "hii", "hiii", "hello", "helo", "hey", "heya", "hola", "yo",
+    "thanks", "thank you", "ty", "thx", "cheers",
+    "who are you", "what are you", "what can you do", "what do you do",
+    "help", "?", "ok", "okay", "cool", "nice", "great",
+    "good morning", "good evening", "good afternoon", "gm", "gn",
+}
+
+
+def _is_smalltalk(message: str) -> bool:
+    """Cheap heuristic: short greeting/small-talk messages skip retrieval."""
+    m = re.sub(r"[^\w\s]", "", message.strip().lower()).strip()
+    if not m:
+        return True
+    if len(m.split()) > 4:
+        return False
+    return m in _GREETING_PATTERNS
 
 
 @router.get("/{doc_id}/messages", response_model=list[MessageOut])
@@ -50,20 +70,23 @@ def chat_in_doc(
     if not q:
         raise HTTPException(status_code=400, detail="Empty message")
 
-    q_embed = embed_texts([q])[0]
+    smalltalk = _is_smalltalk(q)
 
-    rows = db.execute(
-        text("""
-            SELECT id, page_start, page_end, section, content
-            FROM chunks
-            WHERE document_id = :doc_id
-            ORDER BY embedding <=> CAST(:emb AS vector)
-            LIMIT 6
-        """),
-        {"doc_id": doc_id, "emb": str(q_embed)},
-    ).mappings().all()
-
-    contexts = [dict(r) for r in rows]
+    if smalltalk:
+        contexts = []
+    else:
+        q_embed = embed_texts([q])[0]
+        rows = db.execute(
+            text("""
+                SELECT id, page_start, page_end, section, content
+                FROM chunks
+                WHERE document_id = :doc_id
+                ORDER BY embedding <=> CAST(:emb AS vector)
+                LIMIT 6
+            """),
+            {"doc_id": doc_id, "emb": str(q_embed)},
+        ).mappings().all()
+        contexts = [dict(r) for r in rows]
 
     history_rows = db.execute(
         select(Message)
@@ -72,7 +95,13 @@ def chat_in_doc(
     ).scalars().all()
     history = [{"role": m.role, "content": m.content} for m in history_rows]
 
-    answer = chat_with_context(history, q, contexts)
+    answer = chat_with_context(
+        history,
+        q,
+        contexts,
+        title=doc.title,
+        tldr=doc.summary_tldr,
+    )
 
     citations = [
         Citation(section=c["section"], page_start=c["page_start"], page_end=c["page_end"])
