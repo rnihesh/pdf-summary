@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 import '../api.dart';
 import '../auth_store.dart';
 import '../theme.dart';
 import 'library.dart';
+
+const _googleServerClientId =
+    '589108857546-164j25hj2rj8irdm72mvgkrtuodph48e.apps.googleusercontent.com';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +19,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _google = GoogleSignIn(
+    scopes: const ['email', 'profile', 'openid'],
+    serverClientId: _googleServerClientId,
+  );
+
   bool _isSignup = false;
   bool _busy = false;
   String? _error;
@@ -44,6 +54,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _google.signOut();
+      final account = await _google.signIn();
+      if (account == null) {
+        if (mounted) setState(() => _busy = false);
+        return; // user cancelled
+      }
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        throw Exception('Google did not return an ID token. '
+            'Make sure a Web OAuth client is configured and used as serverClientId.');
+      }
+      final res = await Api.google(idToken);
+      await AuthStore.save(res['access_token'] as String, res['user_email'] as String);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LibraryScreen()),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Google sign-in failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,6 +108,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: inkSoft),
                   ),
                   const SizedBox(height: 32),
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _signInWithGoogle,
+                    icon: const Icon(Icons.account_circle_outlined, size: 20),
+                    label: const Text('Continue with Google'),
+                  ),
+                  const SizedBox(height: 20),
+                  const _OrDivider(),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _email,
                     decoration: const InputDecoration(labelText: 'Email'),
@@ -102,6 +155,27 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'or',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
     );
   }
 }

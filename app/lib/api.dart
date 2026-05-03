@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -12,16 +10,8 @@ class ApiException implements Exception {
 }
 
 class Api {
-  /// Override at app start via Api.baseUrl = ... if needed.
-  /// Defaults: Android emulator uses 10.0.2.2; iOS simulator uses localhost.
-  static String baseUrl = _defaultBaseUrl();
+  static String baseUrl = 'https://pdf-api.niheshr.com';
   static String? _token;
-
-  static String _defaultBaseUrl() {
-    if (kIsWeb) return 'http://localhost:8000';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000';
-    return 'http://localhost:8000';
-  }
 
   static void setToken(String? t) => _token = t;
   static String? get token => _token;
@@ -75,6 +65,12 @@ class Api {
   static Future<Map<String, dynamic>> getDocument(int id) async {
     final r = await http.get(Uri.parse('$baseUrl/documents/$id'), headers: _headers());
     return await _decode(r) as Map<String, dynamic>;
+  }
+
+  static Future<String> getPdfUrl(int id) async {
+    final r = await http.get(Uri.parse('$baseUrl/documents/$id/pdf-url'), headers: _headers());
+    final body = await _decode(r) as Map<String, dynamic>;
+    return body['url'] as String;
   }
 
   static Future<Map<String, dynamic>> uploadPdf(String filename, List<int> bytes) async {

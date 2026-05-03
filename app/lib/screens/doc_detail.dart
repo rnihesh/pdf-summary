@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import '../api.dart';
 import '../theme.dart';
@@ -22,7 +23,7 @@ class _DocDetailScreenState extends State<DocDetailScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
     _refresh();
     _poll = Timer.periodic(const Duration(seconds: 2), (_) {
       if (_doc != null && (_doc!['status'] == 'ready' || _doc!['status'] == 'failed')) return;
@@ -63,7 +64,7 @@ class _DocDetailScreenState extends State<DocDetailScreen> with SingleTickerProv
               unselectedLabelColor: inkSoft,
               indicatorColor: oxfordBlue,
               indicatorSize: TabBarIndicatorSize.label,
-              tabs: const [Tab(text: 'Summary'), Tab(text: 'Chat')],
+              tabs: const [Tab(text: 'Summary'), Tab(text: 'PDF'), Tab(text: 'Chat')],
             ),
           ),
         ),
@@ -74,9 +75,65 @@ class _DocDetailScreenState extends State<DocDetailScreen> with SingleTickerProv
               controller: _tabs,
               children: [
                 _SummaryTab(doc: d),
+                _PdfTab(docId: widget.docId),
                 ChatTab(docId: widget.docId, ready: d['status'] == 'ready'),
               ],
             ),
+    );
+  }
+}
+
+class _PdfTab extends StatefulWidget {
+  final int docId;
+  const _PdfTab({required this.docId});
+
+  @override
+  State<_PdfTab> createState() => _PdfTabState();
+}
+
+class _PdfTabState extends State<_PdfTab> {
+  String? _url;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final url = await Api.getPdfUrl(widget.docId);
+      if (!mounted) return;
+      setState(() => _url = url);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Could not load the PDF.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+        ),
+      );
+    }
+    if (_url == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return PdfViewer.uri(
+      Uri.parse(_url!),
+      params: const PdfViewerParams(
+        margin: 8,
+        backgroundColor: paper,
+      ),
     );
   }
 }
