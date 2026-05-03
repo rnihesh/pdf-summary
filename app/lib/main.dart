@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'auth_store.dart';
-import 'screens/library.dart';
-import 'screens/login.dart';
+import 'screens/splash.dart';
 import 'theme.dart';
 
 void main() {
@@ -18,39 +16,7 @@ class App extends StatelessWidget {
       title: 'PDF Summary',
       theme: buildTheme(),
       debugShowCheckedModeBanner: false,
-      home: const _Boot(),
+      home: const SplashScreen(),
     );
-  }
-}
-
-class _Boot extends StatefulWidget {
-  const _Boot();
-  @override
-  State<_Boot> createState() => _BootState();
-}
-
-class _BootState extends State<_Boot> {
-  Widget? _next;
-
-  @override
-  void initState() {
-    super.initState();
-    _decide();
-  }
-
-  Future<void> _decide() async {
-    final auth = await AuthStore.load();
-    if (!mounted) return;
-    setState(() {
-      _next = auth.token != null ? const LibraryScreen() : const LoginScreen();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_next == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    return _next!;
   }
 }

@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../api.dart';
 import '../auth_store.dart';
 import '../theme.dart';
+import '../widgets/tesseract.dart';
 import 'library.dart';
 
 const _googleServerClientId =
@@ -101,11 +102,29 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('PDF Summary', style: Theme.of(context).textTheme.displayMedium),
+                  Center(
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: oxfordBlue,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const TesseractMark(size: 80, animate: false),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'PDF Summary',
+                    style: Theme.of(context).textTheme.displayMedium,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     _isSignup ? 'Create an account to upload your first PDF.' : 'Welcome back.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: inkSoft),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
                   OutlinedButton.icon(
