@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
 from ..db import get_db
-from ..models import User
-from ..schemas import SignupIn, LoginIn, GoogleIn, TokenOut
-from ..auth import hash_password, verify_password, create_access_token
+from ..models import User, Document
+from ..schemas import SignupIn, LoginIn, GoogleIn, TokenOut, UserOut
+from ..auth import hash_password, verify_password, create_access_token, get_current_user
 from ..config import settings
+from ..storage import delete_prefix
 
 router = APIRouter()
 
@@ -68,3 +69,25 @@ def google_signin(payload: GoogleIn, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     return TokenOut(access_token=create_access_token(user.id), user_email=user.email)
+
+
+@router.get("/me", response_model=UserOut)
+def get_me(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    count = db.execute(
+        select(func.count(Document.id)).where(Document.user_id == user.id)
+    ).scalar_one()
+    return UserOut(
+        id=user.id,
+        email=user.email,
+        created_at=user.created_at,
+        document_count=count,
+    )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_me(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    user_id = user.id
+    db.delete(user)
+    db.commit()
+    delete_prefix(f"users/{user_id}/")
+    return None

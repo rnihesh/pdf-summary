@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -7,8 +8,27 @@ import '../theme.dart';
 import '../widgets/tesseract.dart';
 import 'library.dart';
 
-const _googleServerClientId =
+// OAuth client IDs from Google Cloud Console (project: pdf-summary-iiith).
+const _googleAndroidServerClientId =
     '589108857546-164j25hj2rj8irdm72mvgkrtuodph48e.apps.googleusercontent.com';
+const _googleIosClientId =
+    '589108857546-g33o1df9tp4qtjdvvconuc162496q5ne.apps.googleusercontent.com';
+
+GoogleSignIn _buildGoogleSignIn() {
+  // iOS: pass the iOS OAuth client ID as `clientId`. The returned ID token's
+  // audience will equal this client ID. Android registration is bound by
+  // package + SHA-1 in Cloud Console; `serverClientId` sets the audience.
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    return GoogleSignIn(
+      scopes: const ['email', 'profile', 'openid'],
+      clientId: _googleIosClientId,
+    );
+  }
+  return GoogleSignIn(
+    scopes: const ['email', 'profile', 'openid'],
+    serverClientId: _googleAndroidServerClientId,
+  );
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,10 +40,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _google = GoogleSignIn(
-    scopes: const ['email', 'profile', 'openid'],
-    serverClientId: _googleServerClientId,
-  );
+  final _google = _buildGoogleSignIn();
 
   bool _isSignup = false;
   bool _busy = false;

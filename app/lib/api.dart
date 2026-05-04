@@ -57,6 +57,17 @@ class Api {
     return await _decode(r) as Map<String, dynamic>;
   }
 
+  static Future<Map<String, dynamic>> getMe() async {
+    final r = await http.get(Uri.parse('$baseUrl/auth/me'), headers: _headers());
+    return await _decode(r) as Map<String, dynamic>;
+  }
+
+  static Future<void> deleteMe() async {
+    final r = await http.delete(Uri.parse('$baseUrl/auth/me'), headers: _headers());
+    if (r.statusCode >= 200 && r.statusCode < 300) return;
+    await _decode(r);
+  }
+
   static Future<List<dynamic>> listDocuments() async {
     final r = await http.get(Uri.parse('$baseUrl/documents'), headers: _headers());
     return await _decode(r) as List<dynamic>;

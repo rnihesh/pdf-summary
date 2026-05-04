@@ -23,6 +23,16 @@ class TokenOut(BaseModel):
     user_email: EmailStr
 
 
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    created_at: datetime
+    document_count: int
+
+    class Config:
+        from_attributes = True
+
+
 class DocumentOut(BaseModel):
     id: int
     title: str

@@ -330,28 +330,33 @@ class _ChatTabState extends State<ChatTab> {
     return Column(
       children: [
         Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _msgs.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'Ask anything about this PDF.',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: inkSoft),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _msgs.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            'Ask anything about this PDF.',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: inkSoft),
+                          ),
                         ),
+                      )
+                    : ListView.builder(
+                        controller: _scroll,
+                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _msgs.length + (_sending ? 1 : 0),
+                        itemBuilder: (ctx, i) {
+                          if (i == _msgs.length) return const _Typing();
+                          final m = _msgs[i] as Map<String, dynamic>;
+                          return _Bubble(message: m);
+                        },
                       ),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _msgs.length + (_sending ? 1 : 0),
-                      itemBuilder: (ctx, i) {
-                        if (i == _msgs.length) return const _Typing();
-                        final m = _msgs[i] as Map<String, dynamic>;
-                        return _Bubble(message: m);
-                      },
-                    ),
+          ),
         ),
         const Divider(height: 1),
         SafeArea(

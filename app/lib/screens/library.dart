@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import '../api.dart';
 import '../auth_store.dart';
 import '../theme.dart';
+import 'account.dart';
 import 'doc_detail.dart';
 import 'login.dart';
 
@@ -111,14 +112,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await AuthStore.clear();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,9 +119,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         title: const Text('Your library'),
         actions: [
           IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout, size: 20),
-            onPressed: _logout,
+            tooltip: 'Account',
+            icon: const Icon(Icons.account_circle_outlined, size: 22),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AccountScreen()),
+            ),
           ),
         ],
       ),
