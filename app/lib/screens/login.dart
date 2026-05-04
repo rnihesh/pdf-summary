@@ -9,24 +9,24 @@ import '../widgets/tesseract.dart';
 import 'library.dart';
 
 // OAuth client IDs from Google Cloud Console (project: pdf-summary-iiith).
-const _googleAndroidServerClientId =
-    '589108857546-164j25hj2rj8irdm72mvgkrtuodph48e.apps.googleusercontent.com';
+// On Android, `serverClientId` must be a Web-type OAuth client.
+// On iOS, the iOS-type client ID is passed as `clientId`.
+const _googleWebServerClientId =
+    '589108857546-io7ik50blkfml1kkt84s2b2k9id36i5o.apps.googleusercontent.com';
 const _googleIosClientId =
     '589108857546-g33o1df9tp4qtjdvvconuc162496q5ne.apps.googleusercontent.com';
 
 GoogleSignIn _buildGoogleSignIn() {
-  // iOS: pass the iOS OAuth client ID as `clientId`. The returned ID token's
-  // audience will equal this client ID. Android registration is bound by
-  // package + SHA-1 in Cloud Console; `serverClientId` sets the audience.
   if (defaultTargetPlatform == TargetPlatform.iOS) {
     return GoogleSignIn(
       scopes: const ['email', 'profile', 'openid'],
       clientId: _googleIosClientId,
+      serverClientId: _googleWebServerClientId,
     );
   }
   return GoogleSignIn(
     scopes: const ['email', 'profile', 'openid'],
-    serverClientId: _googleAndroidServerClientId,
+    serverClientId: _googleWebServerClientId,
   );
 }
 
